@@ -17,20 +17,17 @@ module MultiSite::PageControllerExtensions
       if params[:root] # If a root page is specified (should this ever be required for non-developers?)
         @homepage = Page.find(params[:root])
         @site = @homepage.root.site
-        response_for :plural if self.respond_to?(:response_for)
       elsif (@site = Site.find(:first, :order => "position ASC")) && @site.homepage # If there is a site defined
         @homepage = @site.homepage
-        response_for :plural if self.respond_to?(:response_for)
       else
         index_without_root
-        response_for :plural if self.respond_to?(:response_for)
       end
     elsif (@site = current_user.site) && @site.homepage
       @homepage = @site.homepage
-      response_for :plural if self.respond_to?(:response_for)
     else
       access_denied
     end
+    response_for :plural if self.respond_to?(:response_for)
   end
 
   def remove_with_site
