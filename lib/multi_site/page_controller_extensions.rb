@@ -17,13 +17,17 @@ module MultiSite::PageControllerExtensions
       if params[:root] # If a root page is specified (should this ever be required for non-developers?)
         @homepage = Page.find(params[:root])
         @site = @homepage.root.site
+        response_for :plural if self.respond_to?(:response_for)
       elsif (@site = Site.find(:first, :order => "position ASC")) && @site.homepage # If there is a site defined
         @homepage = @site.homepage
+        response_for :plural if self.respond_to?(:response_for)
       else
         index_without_root
+        response_for :plural if self.respond_to?(:response_for)
       end
     elsif (@site = current_user.site) && @site.homepage
       @homepage = @site.homepage
+      response_for :plural if self.respond_to?(:response_for)
     else
       access_denied
     end
@@ -36,10 +40,10 @@ module MultiSite::PageControllerExtensions
         @page.destroy
         return_url = session[:came_from]
         session[:came_from] = nil
-        if return_url && return_url != page_index_url(:root => @page)
+        if return_url && return_url != admin_pages_path(:root => @page)
           redirect_to return_url
         else
-          redirect_to page_index_url(:page => @page.parent)
+          redirect_to admin_pages_path(:page => @page.parent)
         end
       else
         session[:came_from] = request.env["HTTP_REFERER"]
@@ -64,8 +68,8 @@ module MultiSite::PageControllerExtensions
 
       @page.slug = params[:slug]
       @page.breadcrumb = params[:breadcrumb]
-      @page.parent = Page.find_by_id(params[:parent_id])
-      render :action => :edit if handle_new_or_edit_post
+      @page.parent = Page.find_by_id(params[:parent_id] || params[:page_id])
+      render :action => :edit unless @page.new_record?
     else
       access_denied
     end
@@ -74,7 +78,7 @@ module MultiSite::PageControllerExtensions
   def edit_with_site
     if user_authorized?
       @old_page_url = @page.url
-      handle_new_or_edit_post
+      return false
     else
       access_denied
     end 
@@ -83,7 +87,7 @@ module MultiSite::PageControllerExtensions
   protected
 
     def continue_url_with_site(options = {})
-      options[:redirect_to] || (params[:continue] ? model_edit_url(:id => model.id) : model_index_url(:root => model.root.id))
+      options[:redirect_to] || (params[:continue] ? {:action => 'edit', :id => model.id} : {:action => "index", :root => model.root.id})
     end
 
     def access_denied
@@ -100,7 +104,7 @@ module MultiSite::PageControllerExtensions
     end
 
     def set_site
-      id = params[:id] || params[:root] || params[:parent_id]
+      id = params[:id] || params[:root] || params[:parent_id] || params[:page_id]
       @page = Page.find(id)
       @site = @page.root.site
     end

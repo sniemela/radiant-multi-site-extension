@@ -27,9 +27,20 @@ class MultiSiteExtension < Radiant::Extension
     Layout.send :include, MultiSite::LayoutExtensions
 
     SiteController.send :include, MultiSite::SiteControllerExtensions
-    Admin::PageController.send :include, MultiSite::PageControllerExtensions
-    Admin::SnippetController.send :include, MultiSite::SnippetControllerExtensions
-
+    
+    # Supports the radiant 0.7 and older
+    if defined? Admin::PageController
+      Admin::PageController.send :include, MultiSite::PageControllerExtensions
+    else
+      Admin::PagesController.send :include, MultiSite::PageControllerExtensions
+    end
+    
+    if defined? Admin::SnippetController
+      Admin::SnippetController.send :include, MultiSite::SnippetControllerExtensions
+    else
+      Admin::SnippetsController.send :include, MultiSite::SnippetControllerExtensions
+    end
+    
     Radiant::Config["dev.host"] = 'preview'
 
     # Add site navigation
